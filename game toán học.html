@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hành Trình Chinh Phục Vương Quốc Toán Học</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff4757;
+            --secondary: #2ed573;
+            --warning: #ffa502;
+            --blue-neon: #00d2d3;
+            --purple-neon: #a29bfe;
+            --dark-blue: #1e272e;
+            --font-main: 'Baloo 2', cursive, sans-serif;
+        }
+
+        /* Thêm user-select: auto cho input để tránh lỗi không gõ được chữ trên vài dòng điện thoại */
+        * { box-sizing: border-box; font-family: var(--font-main); user-select: none; margin: 0; padding: 0; }
+        input { user-select: auto; }
+        body, html { width: 100%; height: 100%; background: #0b0f19; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+
+        /* Khung Game Tràn Viền Full Màn Hình */
+        #game-wrapper {
+            width: 100vw; height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            position: relative;
+            box-shadow: inset 0 0 40px rgba(255,255,255,0.2);
+            overflow: hidden; transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Thanh Chỉ Số Toàn Năng (HUD) luôn hiển thị phía trên */
+        .hud-panel {
+            position: absolute; top: 12px; left: 16px; right: 16px; height: 50px;
+            display: flex; justify-content: space-between; align-items: center; z-index: 50; pointer-events: none; opacity: 0; transform: translateY(-20px); transition: all 0.5s ease;
+        }
+        .hud-panel.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .hud-item {
+            background: rgba(255, 255, 255, 0.92); padding: 4px 14px; border-radius: 50px;
+            box-shadow: 0 6px 0 #b2bec3, 0 4px 15px rgba(0,0,0,0.2); font-size: 16px; font-weight: 800;
+            color: var(--dark-blue); display: flex; align-items: center; gap: 8px; border: 2px solid #dfe6e9;
+        }
+        .energy-track { width: 100px; height: 14px; background: #dfe6e9; border-radius: 10px; overflow: hidden; border: 1px solid #b2bec3; }
+        .energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff7675, #ef5777); transition: width 0.4s ease; }
+        #timer-box { font-size: 20px; color: var(--primary); animation: pulse 1s infinite alternate; }
+
+        /* Toàn bộ các Màn Hình trong Game */
+        .game-screen { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; display: none; }
+        .game-screen.active { display: flex; }
+
+        /* Màn Hình Đăng Nhập & Mở Đầu */
+        #screen-welcome { background: radial-gradient(circle, #ff9ff3, #feca57, #ff6b6b, #48dbfb); background-size: 400% 400%; animation: magicBg 12s ease infinite; }
+        @keyframes magicBg { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        
+        .title-cinematic { font-size: 44px; color: #fff; text-shadow: 4px 4px 0px var(--primary), 8px 8px 0px rgba(0,0,0,0.3); margin-bottom: 8px; font-weight: 800; letter-spacing: 1px; }
+        .mascot-3d { font-size: 75px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3)); animation: floatMascot 3s infinite ease-in-out; margin-bottom: 10px; }
+        @keyframes floatMascot { 0%,100%{transform:translateY(0) rotate(0deg);} 50%{transform:translateY(-12px) rotate(5deg);} }
+        
+        .login-card { background: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 10px 0 #cbd5e1; display: flex; gap: 12px; align-items: center; border: 3px solid #f1f5f9; }
+        .login-card input { border: none; outline: none; font-size: 18px; font-weight: 700; color: #2d3436; text-align: center; width: 200px; }
+        
+        .btn-pixar {
+            background: linear-gradient(135deg, #2ed573, #1dd1a1); border: none; padding: 8px 28px; border-radius: 50px;
+            color: white; font-size: 20px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 0 #10ac84; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); transition: all 0.1s ease;
+        }
+        .btn-pixar:hover { transform: scale(1.05); }
+        .btn-pixar:active { transform: translateY(4px); box-shadow: 0 2px 0 #10ac84; }
+
+        /* Khu Vực Câu Hỏi Chính */
+        #screen-gameplay { padding-top: 75px; justify-content: flex-start; }
+        .zone-header { font-size: 20px; color: white; background: rgba(0,0,0,0.5); padding: 4px 24px; border-radius: 30px; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 12px; }
+        .question-card { background: rgba(255, 255, 255, 0.95); width: 90%; padding: 14px 24px; border-radius: 20px; box-shadow: 0 10px 0 rgba(0,0,0,0.15); border: 4px solid #f1f5f9; margin-bottom: 16px; font-size: 20px; font-weight: 700; color: var(--dark-blue); position: relative; }
+        
+        /* Các dạng tương tác câu hỏi đặc biệt */
+        .interactive-area { width: 90%; display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 5px; }
+        
+        /* 1. Trắc nghiệm */
+        .grid-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 90%; }
+        .choice-item { background: white; border: 2px solid #e2e8f0; padding: 10px; border-radius: 16px; font-size: 18px; font-weight: 700; color: #475569; cursor: pointer; box-shadow: 0 6px 0 #cbd5e1; transition: all 0.1s ease; text-align: center; }
+        .choice-item:hover { background: #f8fafc; transform: translateY(-2px); }
+        .choice-item:active { transform: translateY(4px); box-shadow: 0 2px 0 #cbd5e1; }
+
+        /* 2. Điền số / Điền đáp án */
+        .input-answer-box { display: flex; gap: 10px; background: white; padding: 10px 20px; border-radius: 20px; box-shadow: 0 6px 0 #cbd5e1; border: 2px solid #cbd5e1; }
+        .input-answer-box input { border: none; outline: none; font-size: 24px; font-weight: 800; text-align: center; width: 180px; color: var(--dark-blue); }
+
+        /* 3. Kéo thả & Ghép cặp - CẬP NHẬT CHUẨN ĐA NỀN TẢNG */
+        .drag-container { display: flex; justify-content: space-around; width: 100%; gap: 10px; align-items: center; }
+        .drag-item { 
+            background: #fff; padding: 10px 20px; border-radius: 12px; border: 2px dashed var(--blue-neon); 
+            cursor: grab; font-weight: 700; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            touch-action: none; z-index: 1; /* CỰC QUAN TRỌNG: Sửa lỗi kẹt màn hình cảm ứng */
+        }
+        .drag-item:active { cursor: grabbing; }
+        .drop-zone { background: rgba(255,255,255,0.2); border: 3px dashed white; padding: 15px; border-radius: 16px; width: 220px; min-height: 60px; display: flex; justify-content: center; align-items: center; font-weight: 700; color: white; font-size: 18px; transition: background 0.2s; }
+        .drop-zone.hovered { background: rgba(255,255,255,0.5); transform: scale(1.02); }
+
+        /* Màn Hình Phản Hồi (Feedback Overlay) */
+        .overlay-feedback { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(15,23,42,0.8); display:none; justify-content:center; align-items:center; z-index:100; }
+        .card-feedback { background: white; padding: 25px 45px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); text-align: center; animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-width: 80%; }
+        @keyframes scaleUp { 0%{transform:scale(0.6); opacity:0;} 100%{transform:scale(1); opacity:1;} }
+        .fb-emoji { font-size: 65px; margin-bottom: 8px; animation: bounce 1.5s infinite; }
+        .fb-status { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+        .fb-detail { font-size: 16px; color: #64748b; margin-bottom: 16px; font-weight: 500; }
+
+        /* Màn Hình Tổng Kết & Vinh Danh */
+        #screen-victory { background: radial-gradient(circle, #2c3e50, #000000); color: white; display: none; padding: 20px 40px; }
+        .summary-container { display: flex; width: 100%; justify-content: space-around; align-items: flex-start; margin-top: 15px; }
+        .stats-box { background: rgba(255,255,255,0.1); padding: 15px 25px; border-radius: 20px; text-align: left; border: 1px solid rgba(255,255,255,0.2); }
+        .leaderboard-box { background: rgba(255,255,255,0.15); padding: 12px 24px; border-radius: 20px; width: 45%; max-height: 250px; overflow-y: auto; border: 2px solid var(--warning); }
+        .leaderboard-title { color: var(--warning); font-size: 20px; font-weight: 800; margin-bottom: 8px; text-align: center; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,0.2); font-size: 16px; }
+
+        /* Biến đổi giao diện nền động cho từng vùng đất */
+        .bg-forest { background: radial-gradient(circle, #11998e, #38ef7d) !important; }
+        .bg-cave { background: radial-gradient(circle, #4e54c8, #8f94fb) !important; }
+        .bg-rainbow { background: radial-gradient(circle, #00c6ff, #0072ff) !important; }
+        .bg-robot { background: radial-gradient(circle, #3a7bd5, #3a6073) !important; }
+        .bg-space { background: radial-gradient(circle, #130cb7, #52e5e7) !important; }
+    </style>
+</head>
+<body>
+
+<div style="position: absolute; top: -9999px; left: -9999px;">
+    <div id="youtube-audio"></div>
+</div> 
+<div id="game-wrapper">
+        <div class="hud-panel" id="game-hud">
+            <div class="hud-item"><span id="hud-avatar">🐱</span> <span id="hud-username">Đang tải...</span></div>
+            <div class="hud-item">🔋 Năng lượng: <div class="energy-track"><div class="energy-fill" id="hud-energy"></div></div></div>
+            <div class="hud-item" id="timer-box">⏳ <span id="hud-timer">30</span>s</div>
+            <div class="hud-item" style="color: var(--warning)">💎 Điểm: <span id="hud-score">0</span></div>
+        </div>
+
+        <div class="game-screen active" id="screen-welcome">
+            <div class="mascot-3d">👑</div>
+            <h1 class="title-cinematic">VƯƠNG QUỐC TOÁN HỌC</h1>
+            <p style="color: white; font-size: 18px; margin-bottom: 15px; font-weight: 700; text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">Hành Trình Chinh Phục Công Nghệ Học Tập Tương Tác Lớp 4</p>
+            <div class="login-card">
+                <input type="text" id="player-name-input" placeholder="Nhập tên em vào đây..." maxlength="12">
+                <button class="btn-pixar" onclick="initGame()">BẮT ĐẦU 🚀</button>
+            </div>
+        </div>
+
+        <div class="game-screen" id="screen-gameplay">
+            <div class="zone-header" id="display-zone">VÙNG ĐẤT NỔI BẬT</div>
+            <div class="question-card" id="display-question">Nội dung bài toán lớp 4 đang được thiết lập...</div>
+            <div class="interactive-area" id="display-interaction">
+                </div>
+        </div>
+
+        <div class="overlay-feedback" id="feedback-layer">
+            <div class="card-feedback">
+                <div class="fb-emoji" id="display-fb-emoji">🌟</div>
+                <div class="fb-status" id="display-fb-status">Tuyệt Vời!</div>
+                <div class="fb-detail" id="display-fb-detail">Chúc mừng em đã vượt qua câu hỏi an toàn.</div>
+                <button class="btn-pixar" id="btn-next" onclick="triggerNextQuestion()">TIẾP TỤC HÀNH TRÌNH ➡️</button>
+            </div>
+        </div>
+
+        <div class="game-screen" id="screen-victory">
+            <div class="mascot-3d" style="font-size: 55px; margin: 0;">🏆</div>
+            <h1 class="title-cinematic" style="text-shadow: 3px 3px 0 var(--warning);">HOÀN THÀNH ĐẠI LỘ TOÁN HỌC!</h1>
+            <div class="summary-container">
+                <div class="stats-box">
+                    <h3 style="color: var(--warning); border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 5px; margin-bottom: 10px;">Thống Kê Chiến Quả</h3>
+                    <p>✨ Tổng điểm: <span id="final-score" style="font-weight: 800; color: var(--secondary)">0</span></p>
+                    <p>🏅 Huy chương: <span id="final-medal" style="font-weight: 800; color: #ff7675">Đang tính...</span></p>
+                    <p>🎯 Tỷ lệ chính xác: <span id="final-accuracy" style="font-weight: 800;">100%</span></p>
+                    <button class="btn-pixar" style="margin-top: 15px; font-size: 16px; padding: 6px 16px;" onclick="location.reload()">CHƠI LẠI 🔄</button>
+                </div>
+                <div class="leaderboard-box">
+                    <div class="leaderboard-title">BẢNG XẾP HẠNG TOP 10</div>
+                    <div id="leaderboard-list">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// --- CÀI ĐẶT YOUTUBE NHẠC NỀN ---
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        var bgMusicPlayer;
+        function onYouTubeIframeAPIReady() {
+            bgMusicPlayer = new YT.Player('youtube-audio', {
+                height: '10',
+                width: '10',
+                videoId: 'Bhg-Gw953b0', // Đây là ID bài hát Hoa Hải Đường - J97
+                playerVars: {
+                    'autoplay': 0, 
+                    'controls': 0,
+                    'loop': 1,
+                    'playlist': 'Bhg-Gw953b0' // YouTube yêu cầu có playlist ID giống videoId để lặp lại bài hát
+                }
+            });
+        }
+// 1. CÀI ĐẶT THƯ VIỆN FIREBASE
+        document.write('<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"><\/script>');
+        document.write('<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"><\/script>');
+
+        // (Đợi thư viện tải xong mới chạy code)
+        window.onload = function() {
+            // 2. DÁN ĐOẠN FIREBASE CONFIG BẠN VỪA COPY VÀO ĐÂY:
+            const firebaseConfig = {
+  apiKey: "AIzaSyB4f0BNDYRRL-kCKtdxU9vOQK12BNst0WU",
+  authDomain: "ngoc-8863e.firebaseapp.com",
+  projectId: "ngoc-8863e",
+  storageBucket: "ngoc-8863e.firebasestorage.app",
+  messagingSenderId: "670559564904",
+  appId: "1:670559564904:web:0d22ed011c09776efef7dd"
+};
+
+            // 3. KHỞI TẠO FIREBASE
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            window.database = firebase.database();
+        };
+
+
+        // --- NGÂN HÀNG CÂU HỎI TOÁN 4 CHUẨN ĐỒ HỌA 5 VÙNG ĐẤT ---
+        const gameQuestions = [
+            // Vùng Đất 1: Khu Rừng Phép Tính
+            { type: "choice", zone: "VÙNG ĐẤT 1: KHU RỪNG PHÉP TÍNH", bg: "bg-forest", q: "Giúp Sóc Con nhảy qua tảng đá có kết quả chính xác: 34125 + 52643", options: ["86768", "86758", "86868", "85768"], answer: "86768", hint: "Cộng lần lượt hàng đơn vị: 5 + 3 = 8, hàng chục: 2 + 4 = 6..." },
+            { type: "input", zone: "VÙNG ĐẤT 1: KHU RỪNG PHÉP TÍNH", bg: "bg-forest", q: "Tìm số kẹo thích hợp điền vào ô trống: [ ... ] - 1200 = 4500", answer: "5700", hint: "Muốn tìm số bị trừ, ta lấy hiệu cộng với số trừ (4500 + 1200)." },
+            { type: "choice", zone: "VÙNG ĐẤT 1: KHU RỪNG PHÉP TÍNH", bg: "bg-forest", q: "Con đường Thần Tiên bên trái nói rằng: '8500 × 6 = 51000'. Đúng hay Sai?", options: ["Đúng", "Sai"], answer: "Đúng", hint: "Tính nhẩm: 85 × 6 = 510, rồi thêm 2 chữ số 0 vào sau." },
+            { type: "input", zone: "VÙNG ĐẤT 1: KHU RỪNG PHÉP TÍNH", bg: "bg-forest", q: "Thu thập ngôi sao mang giá trị của phép chia: 9630 : 3", answer: "3210", hint: "Chia từng chữ số từ trái sang phải: 9:3=3, 6:3=2, 3:3=1, 0:3=0." },
+
+            // Vùng Đất 2: Hang Động Bí Ẩn
+            { type: "choice", zone: "VÙNG ĐẤT 2: HANG ĐỘNG BÍ ẨN", bg: "bg-cave", q: "Tìm giá trị của viên pha lê x biết: x × 5 = 2025", options: ["45", "405", "450", "415"], answer: "405", hint: "Muốn tìm thừa số chưa biết, lấy tích chia cho thừa số đã biết: 2025 : 5." },
+            { type: "input", zone: "VÙNG ĐẤT 2: HANG ĐỘNG BÍ ẨN", bg: "bg-cave", q: "Giải mã dãy số cổ đại mở cửa hang: 2, 4, 8, 16, [ ... ], 64", answer: "32", hint: "Quy luật: Mỗi số hạng đứng sau bằng số hạng đứng trước nhân với 2." },
+            { type: "dragdrop", zone: "VÙNG ĐẤT 2: HANG ĐỘNG BÍ ẨN", bg: "bg-cave", q: "Kéo thả biểu thức bên dưới vào ô có giá trị bằng 100.", items: ["25 × 4", "50 × 3", "200 - 90"], target: "25 × 4", hint: "Tính toán thử: 25 × 4 = 100; 50 × 3 = 150; 200 - 90 = 110." },
+            { type: "choice", zone: "VÙNG ĐẤT 2: HANG ĐỘNG BÍ ẨN", bg: "bg-cave", q: "Mật thư trên rương kho báu: 'Chữ số 7 trong số 743.215 có giá trị là 70.000'. Đúng hay Sai?", options: ["Đúng", "Sai"], answer: "Sai", hint: "Chữ số 7 nằm ở hàng trăm nghìn nên giá trị của nó phải là 700.000." },
+
+            // Vùng Đất 3: Cầu Vồng Phân Số
+            { type: "choice", zone: "VÙNG ĐẤT 3: CẦU VỒNG PHÂN SỐ", bg: "bg-rainbow", q: "Tìm phân số bằng với phân số tối giản 1/2 trên các đám mây:", options: ["3/6", "2/3", "1/4", "4/10"], answer: "3/6", hint: "Rút gọn phân số 3/6 bằng cách chia cả tử và mẫu cho 3, ta được 1/2." },
+            { type: "choice", zone: "VÙNG ĐẤT 3: CẦU VỒNG PHÂN SỐ", bg: "bg-rainbow", q: "So sánh hai viên ngọc cầu vồng: 2/5 và 4/5. Phân số nào lớn hơn?", options: ["4/5", "2/5", "Hai phân số bằng nhau"], answer: "4/5", hint: "Khi hai phân số có cùng mẫu số, phân số nào có tử số lớn hơn thì lớn hơn." },
+            { type: "input", zone: "VÙNG ĐẤT 3: CẦU VỒNG PHÂN SỐ", bg: "bg-rainbow", q: "Rút gọn phân số 5/10 về phân số tối giản. Nhập kết quả dạng Tử số (Ví dụ tử số là 1 thì nhập 1)", answer: "1", hint: "Chia cả tử và mẫu của 5/10 cho 5, ta được phân số tối giản là 1/2." },
+            { type: "choice", zone: "VÙNG ĐẤT 3: CẦU VỒNG PHÂN SỐ", bg: "bg-rainbow", q: "Phân số chỉ số phần đã tô màu của một hình được chia làm 4 phần bằng nhau, đã tô màu 3 phần là gì?", options: ["3/4", "1/4", "4/3", "2/4"], answer: "3/4", hint: "Số phần tô màu là tử số (3), tổng số phần bằng nhau là mẫu số (4)." },
+
+            // Vùng Đất 4: Thành Phố Robot Toán Học
+            { type: "choice", zone: "VÙNG ĐẤT 4: THÀNH PHỐ ROBOT TOÁN HỌC", bg: "bg-robot", q: "Sạc pin năng lượng cho Robot: Tính chu vi hình chữ nhật có chiều dài 8m, chiều rộng 5m.", options: ["26m", "40m", "13m", "21m"], answer: "26m", hint: "Công thức tính chu vi hình chữ nhật: (Chiều dài + Chiều rộng) × 2." },
+            { type: "input", zone: "VÙNG ĐẤT 4: THÀNH PHỐ ROBOT TOÁN HỌC", bg: "bg-robot", q: "Tính diện tích của bánh răng hình vuông dùng để sửa chữa cỗ máy, biết cạnh hình vuông là 6cm. (Chỉ điền số)", answer: "36", hint: "Công thức tính diện tích hình vuông: Cạnh × Cạnh (6 × 6)." },
+            { type: "choice", zone: "VÙNG ĐẤT 4: THÀNH PHỐ ROBOT TOÁN HỌC", bg: "bg-robot", q: "Robot bảo vệ hỏi: 'Hình bình hành là hình có hai cặp cạnh đối diện song song và bằng nhau'. Đúng hay Sai?", options: ["Đúng", "Sai"], answer: "Đúng", hint: "Đây chính là đặc điểm cốt lõi cấu thành nên một hình bình hành toán lớp 4." },
+            { type: "choice", zone: "VÙNG ĐẤT 4: THÀNH PHỐ ROBOT TOÁN HỌC", bg: "bg-robot", q: "Một hình thoi có độ dài hai đường chéo lần lượt là 6cm và 4cm. Diện tích hình thoi đó là bao nhiêu?", options: ["12 cm²", "24 cm²", "10 cm²", "48 cm²"], answer: "12 cm²", hint: "Diện tích hình thoi bằng tích độ dài hai đường chéo chia cho 2: (6 × 4) : 2." },
+
+            // Vùng Đất 5: Cuộc Đua Giải Cứu Hành Tinh
+            { type: "choice", zone: "VÙNG ĐẤT 5: CUỘC ĐUA VŨ TRỤ", bg: "bg-space", q: "Tàu vũ trụ mang 150 lít dầu năng lượng. Trạm không gian đã dùng hết 1/3 số dầu. Hỏi trong bình còn lại bao nhiêu lít?", options: ["100 lít", "50 lít", "75 lít", "120 lít"], answer: "100 lít", hint: "Số dầu đã dùng: 150 : 3 = 50 lít. Số dầu còn lại: 150 - 50 = 100 lít." },
+            { type: "input", zone: "VÙNG ĐẤT 5: CUỘC ĐUA VŨ TRỤ", bg: "bg-space", q: "Né thiên thạch bằng lệnh điều hướng là trung bình cộng của ba số: 20, 30 và 40.", answer: "30", hint: "Tính tổng ba số rồi chia cho 3: (20 + 30 + 40) : 3." },
+            { type: "input", zone: "VÙNG ĐẤT 5: CUỘC ĐUA VŨ TRỤ", bg: "bg-space", q: "🌟 CÂU HỎI BÍ MẬT X2 ĐIỂM: Một hình chữ nhật có diện tích 48 cm², chiều rộng là 6cm. Tính chu vi hình chữ nhật đó.", answer: "28", hint: "Tìm chiều dài: 48 : 6 = 8cm. Tính chu vi: (8 + 6) × 2 = 28cm." },
+            { type: "choice", zone: "VÙNG ĐẤT 5: CUỘC ĐUA VŨ TRỤ", bg: "bg-space", q: "Mở cổng không gian nhảy vọt: Chọn số lớn nhất trong các số định vị sau đây:", options: ["852.147", "852.741", "825.999", "852.471"], answer: "852.741", hint: "So sánh từ hàng trăm nghìn, chục nghìn, nghìn rồi đến hàng trăm (700 là lớn nhất)." }
+        ];
+
+        // --- BIẾN TRẠNG THÁI GAME ---
+        let currentIdx = 0;
+        let score = 0;
+        let energy = 100;
+        let timeLeft = 30;
+        let timerId = null;
+        let username = "Thám Hiểm Nhí";
+        let correctAnswersCount = 0;
+        let isAnswering = false; // Ngăn người chơi / game gọi hàm verifyAnswer nhiều lần cùng lúc
+
+        // --- HỆ THỐNG ÂM THANH CHUẨN WEB AUDIO API ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) { console.log("Audio Error"); }
+        }
+        function soundCorrect() { playTone(523.25, "sine", 0.15); setTimeout(() => playTone(659.25, "sine", 0.3), 150); }
+        function soundWrong() { playTone(293.66, "sawtooth", 0.4); }
+        function soundWin() { playTone(523.25, "triangle", 0.2); setTimeout(() => playTone(659.25, "triangle", 0.2), 150); setTimeout(() => playTone(783.99, "triangle", 0.4), 300); }
+
+        // --- KHỞI CHẠY GAME ---
+        function initGame() {
+
+            // Yêu cầu bật Full Màn Hình trình duyệt
+            let docEl = document.documentElement;
+            let requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            if(requestFullScreen) {
+                requestFullScreen.call(docEl);
+            }
+
+            const inputName = document.getElementById("player-name-input").value.trim();
+            if(!inputName) { alert("Em hãy nhập tên để nhận Thẻ Thông Hành Vương Quốc nhé!"); return; }
+            username = inputName;
+            // ========== LỆNH PHÁT NHẠC YOUTUBE ==========
+            if (bgMusicPlayer && typeof bgMusicPlayer.playVideo === 'function') {
+                bgMusicPlayer.setVolume(40); // Chỉnh âm lượng 40%
+                bgMusicPlayer.playVideo();
+            }
+            document.getElementById("hud-username").innerText = username;
+            document.getElementById("screen-welcome").classList.remove("active");
+            document.getElementById("game-hud").classList.add("active");
+            document.getElementById("screen-gameplay").classList.add("active");
+            
+            currentIdx = 0; score = 0; energy = 100; correctAnswersCount = 0;
+            updateHud();
+            loadQuestion();
+        }
+
+        // --- CẬP NHẬT THANH CHỈ SỐ ---
+        function updateHud() {
+            document.getElementById("hud-score").innerText = score;
+            document.getElementById("hud-energy").style.width = energy + "%";
+        }
+
+        // --- LIÊN KẾT NẠP CÂU HỎI THEO FORM ĐA DẠNG ---
+        function loadQuestion() {
+            if(currentIdx >= gameQuestions.length || energy <= 0) {
+                finishGame(); return;
+            }
+
+            isAnswering = false;
+
+            // Đồng hồ đếm ngược
+            timeLeft = 30;
+            document.getElementById("hud-timer").innerText = timeLeft;
+            clearInterval(timerId);
+            timerId = setInterval(() => {
+                timeLeft--;
+                document.getElementById("hud-timer").innerText = timeLeft;
+                if(timeLeft <= 0) { clearInterval(timerId); verifyAnswer(null, false); }
+            }, 1000);
+
+            const qData = gameQuestions[currentIdx];
+            
+            // Đổi bối cảnh đồ họa theo Vùng Đất
+            document.getElementById("game-wrapper").className = qData.bg;
+            document.getElementById("display-zone").innerText = qData.zone;
+            document.getElementById("display-question").innerText = qData.q;
+            
+            const interactArea = document.getElementById("display-interaction");
+            interactArea.innerHTML = "";
+
+            // Phân loại render UI dựa trên thuộc tính câu hỏi
+            if(qData.type === "choice") {
+                const grid = document.createElement("div");
+                grid.className = "grid-choices";
+                qData.options.forEach(opt => {
+                    const box = document.createElement("div");
+                    box.className = "choice-item";
+                    box.innerText = opt;
+                    box.onclick = () => verifyAnswer(opt, opt === qData.answer);
+                    grid.appendChild(box);
+                });
+                interactArea.appendChild(grid);
+            } 
+            else if(qData.type === "input") {
+                const box = document.createElement("div");
+                box.className = "input-answer-box";
+                const input = document.createElement("input");
+                input.type = "text"; input.id = "typed-ans"; input.placeholder = "Đáp số...";
+                input.onkeyup = (e) => { if(e.key === 'Enter') submitTypedAnswer(); };
+                const btn = document.createElement("button");
+                btn.className = "btn-pixar"; btn.innerText = "NỘP 🎯"; btn.onclick = submitTypedAnswer;
+                box.appendChild(input); box.appendChild(btn);
+                interactArea.appendChild(box);
+                setTimeout(() => input.focus(), 200);
+            }
+            // MÃ MỚI SỬA LỖI ĐIỆN THOẠI CHO MỤC KÉO THẢ
+            else if(qData.type === "dragdrop") {
+                const wrapper = document.createElement("div");
+                wrapper.className = "drag-container";
+                
+                // Khối kéo
+                const itemsBlock = document.createElement("div");
+                itemsBlock.style.display = "flex"; itemsBlock.style.flexDirection = "column"; itemsBlock.style.gap = "8px";
+
+                // Vùng thả
+                const dZone = document.createElement("div");
+                dZone.className = "drop-zone"; dZone.innerText = "Thả biểu thức đúng vào đây";
+
+                qData.items.forEach(it => {
+                    const dItem = document.createElement("div");
+                    dItem.className = "drag-item"; 
+                    dItem.innerText = it;
+                    
+                    // Cơ chế Pointer Events khắc phục lỗi kẹt màn hình Mobile/Tablet
+                    let isDragging = false;
+                    let currentX = 0, currentY = 0, initialX = 0, initialY = 0;
+
+                    dItem.addEventListener('pointerdown', (e) => {
+                        if (isAnswering) return;
+                        isDragging = true;
+                        dItem.setPointerCapture(e.pointerId);
+                        initialX = e.clientX - currentX;
+                        initialY = e.clientY - currentY;
+                        dItem.style.zIndex = 1000;
+                        dItem.style.transition = 'none';
+                    });
+
+                    dItem.addEventListener('pointermove', (e) => {
+                        if (!isDragging) return;
+                        e.preventDefault();
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                        dItem.style.transform = `translate(${currentX}px, ${currentY}px)`;
+                        
+                        const itemRect = dItem.getBoundingClientRect();
+                        const zoneRect = dZone.getBoundingClientRect();
+                        
+                        // Va chạm vật lý
+                        if (itemRect.left < zoneRect.right && itemRect.right > zoneRect.left &&
+                            itemRect.top < zoneRect.bottom && itemRect.bottom > zoneRect.top) {
+                            dZone.classList.add('hovered');
+                        } else {
+                            dZone.classList.remove('hovered');
+                        }
+                    });
+
+                    dItem.addEventListener('pointerup', (e) => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        dItem.releasePointerCapture(e.pointerId);
+                        dItem.style.zIndex = 1;
+                        dZone.classList.remove('hovered');
+                        
+                        const itemRect = dItem.getBoundingClientRect();
+                        const zoneRect = dZone.getBoundingClientRect();
+                        
+                        if (itemRect.left < zoneRect.right && itemRect.right > zoneRect.left &&
+                            itemRect.top < zoneRect.bottom && itemRect.bottom > zoneRect.top) {
+                            verifyAnswer(it, it === qData.target);
+                        } else {
+                            // Trượt trả lại nếu kéo sai chỗ
+                            dItem.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                            currentX = 0; currentY = 0;
+                            dItem.style.transform = `translate(0px, 0px)`;
+                        }
+                    });
+
+                    itemsBlock.appendChild(dItem);
+                });
+
+                wrapper.appendChild(itemsBlock);
+                wrapper.appendChild(dZone);
+                interactArea.appendChild(wrapper);
+            }
+        }
+
+        // --- XỬ LÝ ĐÁP ÁN ĐIỀN TAY ---
+        function submitTypedAnswer() {
+            const val = document.getElementById("typed-ans").value.trim();
+            if(!val) return;
+            const target = gameQuestions[currentIdx].answer;
+            verifyAnswer(val, val === target);
+        }
+
+        // --- KIỂM TRA CHÍNH XÁC & CỘNG THƯỞNG ĐIỆN ẢNH ---
+        function verifyAnswer(playerAns, isCorrect) {
+            if (isAnswering) return; // Khoá an toàn chống lỗi bấm 2 lần
+            isAnswering = true;
+            clearInterval(timerId);
+            
+            const qData = gameQuestions[currentIdx];
+            const fbLayer = document.getElementById("feedback-layer");
+            
+            const emoji = document.getElementById("display-fb-emoji");
+            const status = document.getElementById("display-fb-status");
+            const detail = document.getElementById("display-fb-detail");
+
+            // Logic tính điểm bí mật x2 ở câu 19
+            let pointsGained = (currentIdx === 18) ? 200 : 100;
+
+            if(isCorrect) {
+                soundCorrect();
+                correctAnswersCount++;
+                if(timeLeft >= 25) { pointsGained += 50; status.innerText = "SIÊU TỐC ĐỘ! ⚡"; }
+                else { status.innerText = "XUẤT SẮC! 🎉"; }
+                score += pointsGained;
+                emoji.innerText = "🔥";
+                detail.innerText = `Chúc mừng em! Đáp án '${playerAns}' hoàn toàn chuẩn xác. Tặng em +${pointsGained} điểm.`;
+            } else {
+                soundWrong();
+                energy -= 20; if(energy < 0) energy = 0;
+                status.innerText = "HÃY THỬ LẠI NHÉ! 💪";
+                emoji.innerText = "💡";
+                const realAns = qData.answer ? qData.answer : qData.target;
+                detail.innerText = `Không sao đâu, em đang tiến bộ! Đáp án đúng phải là: [ ${realAns} ]. \n Mẹo: ${qData.hint}`;
+            }
+
+            updateHud();
+            fbLayer.style.display = "flex";
+        }
+
+        function triggerNextQuestion() {
+            document.getElementById("feedback-layer").style.display = "none";
+            currentIdx++;
+            loadQuestion();
+        }
+
+        // --- KẾT THÚC VÀ LƯU ĐIỂM LÊN ĐÁM MÂY ---
+        function finishGame() {
+            soundWin();
+            document.getElementById("game-hud").classList.remove("active");
+            document.getElementById("screen-gameplay").classList.remove("active");
+            document.getElementById("screen-victory").style.display = "flex";
+
+            document.getElementById("final-score").innerText = score;
+            const acc = Math.round((correctAnswersCount / gameQuestions.length) * 100);
+            document.getElementById("final-accuracy").innerText = acc + "%";
+
+            // Xét Huy chương phong hiệu Pixar
+            const mField = document.getElementById("final-medal");
+            if(score >= 1800) { mField.innerText = "Huy Chương Vàng Lấp Lánh 🥇"; mField.style.color = "#feca57"; }
+            else if(score >= 1200) { mField.innerText = "Huy Chương Bạc Quả Cảm 🥈"; mField.style.color = "#dff9fb"; }
+            else { mField.innerText = "Huy Chương Đồng Kiên Trì 🥉"; mField.style.color = "#ff9f43"; }
+
+            // Nếu database đã sẵn sàng thì đẩy điểm lên
+            if (window.database) {
+                const lbList = document.getElementById("leaderboard-list");
+                lbList.innerHTML = "<i>Đang tải dữ liệu đám mây... ☁️</i>";
+
+                // 1. Đẩy điểm người chơi hiện tại lên
+                window.database.ref('leaderboard').push({
+                    name: username,
+                    score: score,
+                    date: new Date().toLocaleDateString('vi-VN')
+                }).then(() => {
+                    // 2. Tải Top 10 cao nhất về hiển thị
+                    window.database.ref('leaderboard').orderByChild('score').limitToLast(10).once('value', (snapshot) => {
+                        let globalBoard = [];
+                        snapshot.forEach((childSnapshot) => {
+                            globalBoard.push(childSnapshot.val());
+                        });
+                        
+                        // Đảo ngược danh sách để điểm cao nhất lên đầu
+                        globalBoard.sort((a, b) => b.score - a.score);
+
+                        // 3. Render ra UI
+                        lbList.innerHTML = "";
+                        globalBoard.forEach((user, idx) => {
+                            const item = document.createElement("div");
+                            item.className = "leaderboard-item";
+                            item.innerHTML = `<span>Top ${idx+1}. <b>${user.name}</b></span> <span>💎 ${user.score}</span>`;
+                            lbList.appendChild(item);
+                        });
+                    });
+                }).catch((error) => {
+                    lbList.innerHTML = "Lỗi kết nối máy chủ!";
+                    console.error("Firebase Error:", error);
+                });
+            } else {
+                alert("Máy chủ chưa kết nối được, vui lòng tải lại trang!");
+            }
+        }
+    </script>
+</body>
+</html>
